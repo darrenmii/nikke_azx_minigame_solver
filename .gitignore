@@ -1,0 +1,4 @@
+venv/
+__pycache__
+data/custom_dataset/
+data/to_label/
