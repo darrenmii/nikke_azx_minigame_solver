@@ -17,7 +17,7 @@ from preprocess import preprocess_image
 class NumberRecognitionApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Number Recognition")
+        self.root.title("Nikke AZX Minigame Solver")
         self.root.geometry("1200x800")
 
         # Top Frame for controls
