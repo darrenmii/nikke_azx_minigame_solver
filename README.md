@@ -2,7 +2,7 @@
 
 This project is a tool designed to automatically solve the number-based minigame found in the game "Goddess of Victory: Nikke". It uses computer vision to analyze a screenshot of the minigame, recognize the numbers on the grid, and present the solution.
 
-![Screenshot of the minigame](image01.png)
+![Screenshot of the minigame](image/image01.png)
 
 ## Features
 
@@ -35,8 +35,13 @@ python src/gui.py
 
 From the GUI, you can load a screenshot of the minigame, and the application will display the detected numbers.
 
-![Example 1](image02.png)
-![Example 2](image03.png)
+- You can load an image either from a file or directly from the clipboard.
+- The grid will show small blue numbers; double-check that they match the digits in the screenshot.
+- If a digit is wrong, click the blue box and edit it before proceeding.
+- Click `Start Game` to start computing a solution; click the game window to advance to the next solution.
+
+![UI01](image/ui01.png)
+![UI02](image/ui02.png)
 
 ## Project Structure
 
