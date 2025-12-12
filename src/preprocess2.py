@@ -65,8 +65,8 @@ def process_image_to_normalized_digit(image_input, canvas_size=28, target_digit_
     coords = cv2.findNonZero(perfect_digit)
     # 如果 perfect_digit 是全黑的（例如，無法識別的儲存格），coords 會是 None
     if coords is None:
-        # 返回一個空的 28x28 圖像
-        return np.zeros((canvas_size, canvas_size), dtype=np.uint8)
+        # 返回 None 表示該儲存格為空
+        return None
 
     x, y, w, h = cv2.boundingRect(coords)
     digit_roi = perfect_digit[y:y+h, x:x+w]
@@ -78,7 +78,7 @@ def process_image_to_normalized_digit(image_input, canvas_size=28, target_digit_
     
     # 防止 new_w 或 new_h 為 0
     if new_w == 0 or new_h == 0:
-        return np.zeros((canvas_size, canvas_size), dtype=np.uint8)
+        return None
 
     resized_digit = cv2.resize(digit_roi, (new_w, new_h), interpolation=cv2.INTER_AREA)
 
