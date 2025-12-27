@@ -15,6 +15,8 @@ from model import DigitNet
 from preprocess import preprocess_image
 from solver import Solver
 import threading
+import keyboard
+import ctypes
 
 class NumberRecognitionApp:
     def __init__(self, root):
@@ -89,6 +91,33 @@ class NumberRecognitionApp:
         self.canvas.bind("<Button-1>", self.on_canvas_click)
         self.root.bind("<Key>", self.on_key_press)
         
+        # Determine hotkey from settings or default
+        try:
+            keyboard.add_hotkey('alt+a', lambda: self.root.after(0, self.eliminate_solution))
+        except ImportError:
+            print("Keyboard library not installed/working properly.")
+        except Exception as e:
+            print(f"Failed to register hotkey: {e}")
+
+        self.check_admin_privileges()
+
+    def check_admin_privileges(self):
+        try:
+            is_admin = ctypes.windll.shell32.IsUserAnAdmin()
+        except:
+            is_admin = False
+            
+        if not is_admin:
+            self.root.title("Nikke AZX Minigame Solver (Non-Admin - Hotkeys may fail in game)")
+            # Defer the warning slightly so it doesn't block startup visibly before window appears or strictly after
+            self.root.after(500, lambda: messagebox.showwarning(
+                "Admin Privileges Recommended", 
+                "You are not running as Administrator.\n\n"
+                "Global hotkeys (Alt+A) may NOT work when the game window is active "
+                "if the game is running as Administrator (common for games).\n\n"
+                "Please restart this application as Administrator if hotkeys fail."
+            ))
+
     def load_model(self):
         model_path = os.path.join(os.path.dirname(__file__), '..', 'model.pth')
         if not os.path.exists(model_path):
