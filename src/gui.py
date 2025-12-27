@@ -13,6 +13,8 @@ sys.path.append(os.path.dirname(__file__))
 
 from model import DigitNet
 from preprocess import preprocess_image
+from solver import Solver
+import threading
 
 class NumberRecognitionApp:
     def __init__(self, root):
@@ -72,6 +74,8 @@ class NumberRecognitionApp:
         self.current_solution = None # (r1, c1, r2, c2)
         self.solution_rect_id = None
         self.score = 0
+        self.solution_path = []
+        self.is_solving = False
         
         # Interaction state
         self.selected_text_id = None
@@ -261,6 +265,43 @@ class NumberRecognitionApp:
             raise e
             
     def start_game(self):
+        # Deep copy matrix for solver to ensure thread safety / no mutation of UI state during solve
+        # Actually our matrix contains dicts. Solver converts to immutable state anyway.
+        # But we should prevent user edits while solving.
+        
+        self.game_active = False # Will be active after solve
+        self.start_btn.config(state=tk.DISABLED)
+        self.status_label.config(text="Calculating best solution path... (This might take a moment)")
+        self.root.update_idletasks()
+        
+        self.is_solving = True
+        
+        # Run in thread
+        threading.Thread(target=self.run_solver, daemon=True).start()
+
+    def run_solver(self):
+        try:
+            solver = Solver()
+            
+            def update_progress(status_msg):
+                self.root.after(0, lambda: self.status_label.config(text=f"Searching... {status_msg}"))
+                
+            path = solver.solve(self.matrix, progress_callback=update_progress)
+            self.root.after(0, self.on_solver_finished, path)
+        except Exception as e:
+            print(f"Solver error: {e}")
+            self.root.after(0, lambda: messagebox.showerror("Solver Error", f"An error occurred: {e}"))
+            self.root.after(0, self.on_solver_finished, [])
+
+    def on_solver_finished(self, path):
+        self.is_solving = False
+        self.solution_path = path
+        
+        if not path:
+             self.status_label.config(text="No solutions found.")
+             self.start_btn.config(state=tk.NORMAL)
+             return
+             
         self.game_active = True
         self.score = 0
         self.score_label.config(text=f"Score: 0")
@@ -268,39 +309,22 @@ class NumberRecognitionApp:
         # Deselect any manual edits
         self.deselect()
         
+        self.status_label.config(text=f"Found optimal path with {len(path)} moves. Click to eliminate.")
         self.find_next_solution()
-        
+
     def find_next_solution(self):
-        solution = None
-        
-        for r1 in range(self.num_rows):
-            for c1 in range(self.num_cols):
-                for r2 in range(r1, self.num_rows):
-                    for c2 in range(c1, self.num_cols):
-                        current_sum = 0
-                        # Calculate sum of this rect
-                        for r in range(r1, r2 + 1):
-                            for c in range(c1, c2 + 1):
-                                cell = self.matrix[r][c]
-                                val = cell['val'] if cell else 0
-                                current_sum += val
-                        
-                        if current_sum == 10:
-                            solution = (r1, c1, r2, c2)
-                            break
-                    if solution: break
-                if solution: break
-            if solution: break
-            
-        if solution:
-            self.current_solution = solution
-            self.highlight_solution(solution)
-            self.status_label.config(text="Solution found! Click to eliminate.")
-        else:
+        if not self.solution_path:
             self.current_solution = None
             self.game_active = False
-            self.status_label.config(text="No more solutions found.")
-            messagebox.showinfo("Game Over", f"No more solutions! Final Score: {self.score}")
+            self.status_label.config(text="No more solutions in path.")
+            messagebox.showinfo("Game Over", f"Path Completed! Final Score: {self.score}")
+            self.start_btn.config(state=tk.NORMAL)
+            return
+
+        # Pop the first move
+        self.current_solution = self.solution_path.pop(0)
+        self.highlight_solution(self.current_solution)
+        self.status_label.config(text=f"Solution found ({len(self.solution_path)} remaining)! Click to eliminate.")
 
     def highlight_solution(self, solution):
         r1, c1, r2, c2 = solution
@@ -420,4 +444,6 @@ def main():
     root.mainloop()
 
 if __name__ == "__main__":
+    import multiprocessing
+    multiprocessing.freeze_support()
     main()
